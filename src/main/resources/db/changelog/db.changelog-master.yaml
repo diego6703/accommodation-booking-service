@@ -1,0 +1,6 @@
+databaseChangeLog:
+  - changeSet:
+      id: 000-init
+      author: diego
+      comment: "DB Init"
+      changes: []
