@@ -1,23 +1,22 @@
 version: '3.8'
 
 services:
-  mysql-db:
-    image: mysql:8.0
-    container_name: mysql_portfolio_db
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: postgres_portfolio_db
     restart: always
     env_file:
       - ./.env
     environment:
-      MYSQLDB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQLDB_DATABASE: ${MYSQL_DATABASE}
-      MYSQLDB_USER: ${MYSQL_USER}
-      MYSQLDB_PASSWORD: ${MYSQL_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "3307:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQLDB_USER}", "-p${MYSQLDB_PASSWORD}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DATABASE}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -33,18 +32,18 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/${MYSQL_DATABASE}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
-      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/${POSTGRES_DATABASE}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
     depends_on:
-      mysql-db:
+      postgres-db:
         condition: service_healthy
     networks:
       - app-network
 
 volumes:
-  mysql_data:
+  postgres_data:
 
 networks:
   app-network:
