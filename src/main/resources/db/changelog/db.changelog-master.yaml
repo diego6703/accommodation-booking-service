@@ -1,6 +1,3 @@
 databaseChangeLog:
-  - changeSet:
-      id: 000-init
-      author: diego
-      comment: "DB Init"
-      changes: []
+  - include:
+      file: db/changelog/changes/01-create-initial-tables.yaml
