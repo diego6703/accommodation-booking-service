@@ -9,6 +9,7 @@ import dev.diego.accommodationbookingservice.dto.auth.UserLoginRequestDto;
 import dev.diego.accommodationbookingservice.model.Role;
 import dev.diego.accommodationbookingservice.model.User;
 import dev.diego.accommodationbookingservice.repository.UserRepository;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,8 @@ class AuthenticationControllerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private final String testEmail = "black_" + UUID.randomUUID() + "@pearl.com";
+
     @BeforeEach
     void setUp() {
         userRepository.deleteAll();
@@ -42,7 +45,7 @@ class AuthenticationControllerTest {
         User user = new User();
         user.setFirstName("Jack");
         user.setLastName("Sparrow");
-        user.setEmail("black@pearl.com");
+        user.setEmail(testEmail);
         user.setPassword(passwordEncoder.encode("JohnnyDepp"));
         user.setRole(Role.CUSTOMER);
         userRepository.save(user);
@@ -51,7 +54,7 @@ class AuthenticationControllerTest {
     @Test
     @DisplayName("Should login successfully with valid credentials")
     void login_WithValidCredentials_ShouldReturnJwtToken() throws Exception {
-        UserLoginRequestDto loginRequest = new UserLoginRequestDto("black@pearl.com", "JohnnyDepp");
+        UserLoginRequestDto loginRequest = new UserLoginRequestDto(testEmail, "JohnnyDepp");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -64,7 +67,7 @@ class AuthenticationControllerTest {
     @DisplayName("Should return 401 when password is invalid")
     void login_WithInvalidPassword_ShouldReturnUnauthorized() throws Exception {
         UserLoginRequestDto loginRequest =
-                new UserLoginRequestDto("black@pearl.com", "MichaelBolton");
+                new UserLoginRequestDto(testEmail, "MichaelBolton");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
