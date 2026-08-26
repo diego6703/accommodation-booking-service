@@ -1,9 +1,9 @@
 package dev.diego.accommodationbookingservice.service.impl;
 
+import dev.diego.accommodationbookingservice.dto.UserResponseDto;
 import dev.diego.accommodationbookingservice.dto.auth.UserLoginRequestDto;
 import dev.diego.accommodationbookingservice.dto.auth.UserLoginResponseDto;
 import dev.diego.accommodationbookingservice.dto.auth.UserRegistrationRequestDto;
-import dev.diego.accommodationbookingservice.dto.auth.UserResponseDto;
 import dev.diego.accommodationbookingservice.exception.RegistrationException;
 import dev.diego.accommodationbookingservice.mapper.UserMapper;
 import dev.diego.accommodationbookingservice.model.User;
