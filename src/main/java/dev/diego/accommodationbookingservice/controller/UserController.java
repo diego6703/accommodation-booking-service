@@ -25,16 +25,14 @@ public class UserController {
     private final UserService userService;
 
     @Operation(summary = "Get current user profile",
-            description = "GET: /users/me - "
-                    + "Retrieves the profile information for the currently logged-in user.")
+            description = "Retrieves the profile information for the currently logged-in user.")
     @GetMapping("/me")
     public UserResponseDto getMyProfile() {
         return userService.getMyProfile();
     }
 
     @Operation(summary = "Update current user profile",
-            description = "PUT: /users/me "
-                    + "- Allows users to update their profile information.")
+            description = "Allows users to update their profile information.")
     @PutMapping("/me")
     public UserResponseDto updateMyProfile(
             @RequestBody @Valid UserUpdateProfileRequestDto requestDto) {
@@ -42,8 +40,7 @@ public class UserController {
     }
 
     @Operation(summary = "Update user role",
-            description = "PUT: /users/{id}/role - "
-                    + "Enables users to update their roles, providing role-based access.")
+            description = "Enables users to update their roles, providing role-based access.")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/role")
     public UserResponseDto updateRole(
