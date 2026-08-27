@@ -153,7 +153,8 @@ public class PaymentServiceImpl implements PaymentService {
 
     private SessionCreateParams.LineItem.PriceData.ProductData createProductData(
             Booking booking, long numberOfDays) {
-        String productName = String.format("Booking #%d (%d nights)", booking.getId(), numberOfDays);
+        String productName =
+                String.format("Booking #%d (%d nights)", booking.getId(), numberOfDays);
 
         return SessionCreateParams.LineItem.PriceData.ProductData.builder()
                 .setName(productName)

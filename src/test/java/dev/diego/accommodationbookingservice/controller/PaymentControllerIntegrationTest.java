@@ -30,7 +30,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
 class PaymentControllerIntegrationTest {
@@ -57,7 +57,7 @@ class PaymentControllerIntegrationTest {
         userRepository.deleteAll();
 
         User customer = new User();
-        customer.setEmail("jack.sparrow@blackpearl.com");
+        customer.setEmail("jack.sparrow" + java.util.UUID.randomUUID() + "@blackpearl.com");
         customer.setPassword(passwordEncoder.encode("rum123"));
         customer.setFirstName("Jack");
         customer.setLastName("Sparrow");
