@@ -153,6 +153,10 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalStateException("Booking is already canceled.");
         }
 
+        if (booking.getStatus() == BookingStatus.CONFIRMED) {
+            throw new IllegalStateException("Cannot cancel a confirmed booking.");
+        }
+
         booking.setStatus(BookingStatus.CANCELED);
         bookingRepository.save(booking);
 
