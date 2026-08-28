@@ -4,6 +4,7 @@ import dev.diego.accommodationbookingservice.dto.UserResponseDto;
 import dev.diego.accommodationbookingservice.dto.user.UserUpdateProfileRequestDto;
 import dev.diego.accommodationbookingservice.dto.user.UserUpdateRoleRequestDto;
 import dev.diego.accommodationbookingservice.exception.EntityNotFoundException;
+import dev.diego.accommodationbookingservice.exception.PasswordMismatchException;
 import dev.diego.accommodationbookingservice.mapper.UserMapper;
 import dev.diego.accommodationbookingservice.model.User;
 import dev.diego.accommodationbookingservice.repository.UserRepository;
@@ -38,7 +39,7 @@ public class UserServiceImpl implements UserService {
 
         if (requestDto.password() != null || requestDto.repeatPassword() != null) {
             if (!Objects.equals(requestDto.password(), requestDto.repeatPassword())) {
-                throw new IllegalArgumentException("Passwords do not match");
+                throw new PasswordMismatchException("Passwords do not match");
             }
         }
         userMapper.updateUserFromDto(requestDto, user);

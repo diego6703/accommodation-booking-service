@@ -5,9 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.stripe.exception.StripeException;
 import dev.diego.accommodationbookingservice.dto.payment.PaymentMessageResponseDto;
 import dev.diego.accommodationbookingservice.dto.payment.PaymentResponseDto;
+import dev.diego.accommodationbookingservice.exception.EntityNotFoundException;
+import dev.diego.accommodationbookingservice.exception.PaymentProcessingException;
 import dev.diego.accommodationbookingservice.mapper.PaymentMapper;
 import dev.diego.accommodationbookingservice.model.Accommodation;
 import dev.diego.accommodationbookingservice.model.Booking;
@@ -64,7 +65,7 @@ class PaymentServiceTest {
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> paymentService.createCheckoutSession(bookingId))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Reservation not found for ID: " + bookingId);
     }
 
@@ -92,7 +93,7 @@ class PaymentServiceTest {
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         assertThatThrownBy(() -> paymentService.createCheckoutSession(bookingId))
-                .isInstanceOf(StripeException.class);
+                .isInstanceOf(PaymentProcessingException.class);
     }
 
     @Test
@@ -220,7 +221,7 @@ class PaymentServiceTest {
         when(paymentRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> paymentService.handleSuccessfulPayment(sessionId))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Payment not found for session ID: " + sessionId);
     }
 

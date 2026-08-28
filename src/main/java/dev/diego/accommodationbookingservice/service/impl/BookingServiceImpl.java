@@ -3,7 +3,9 @@ package dev.diego.accommodationbookingservice.service.impl;
 import dev.diego.accommodationbookingservice.dto.booking.BookingRequestDto;
 import dev.diego.accommodationbookingservice.dto.booking.BookingResponseDto;
 import dev.diego.accommodationbookingservice.dto.booking.BookingUpdateDto;
+import dev.diego.accommodationbookingservice.exception.BookingException;
 import dev.diego.accommodationbookingservice.exception.EntityNotFoundException;
+import dev.diego.accommodationbookingservice.exception.OverlappingBookingException;
 import dev.diego.accommodationbookingservice.mapper.BookingMapper;
 import dev.diego.accommodationbookingservice.model.Accommodation;
 import dev.diego.accommodationbookingservice.model.Booking;
@@ -47,7 +49,7 @@ public class BookingServiceImpl implements BookingService {
         );
 
         if (overlappingCount >= accommodation.getAvailability()) {
-            throw new IllegalStateException(
+            throw new OverlappingBookingException(
                     "No available places for this accommodation in the selected date range."
             );
         }
@@ -130,7 +132,7 @@ public class BookingServiceImpl implements BookingService {
 
             if ((overlappingCount - currentBookingOverlap)
                     >= booking.getAccommodation().getAvailability()) {
-                throw new IllegalStateException(
+                throw new OverlappingBookingException(
                         "No available places for this accommodation in the new selected date range."
                 );
             }
@@ -150,11 +152,11 @@ public class BookingServiceImpl implements BookingService {
         checkAccess(booking, currentUser);
 
         if (booking.getStatus() == BookingStatus.CANCELED) {
-            throw new IllegalStateException("Booking is already canceled.");
+            throw new BookingException("Booking is already canceled.");
         }
 
         if (booking.getStatus() == BookingStatus.CONFIRMED) {
-            throw new IllegalStateException("Cannot cancel a confirmed booking.");
+            throw new BookingException("Cannot cancel a confirmed booking.");
         }
 
         booking.setStatus(BookingStatus.CANCELED);
