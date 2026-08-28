@@ -5,6 +5,8 @@ import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import dev.diego.accommodationbookingservice.dto.payment.PaymentMessageResponseDto;
 import dev.diego.accommodationbookingservice.dto.payment.PaymentResponseDto;
+import dev.diego.accommodationbookingservice.exception.EntityNotFoundException;
+import dev.diego.accommodationbookingservice.exception.PaymentProcessingException;
 import dev.diego.accommodationbookingservice.mapper.PaymentMapper;
 import dev.diego.accommodationbookingservice.model.Booking;
 import dev.diego.accommodationbookingservice.model.Payment;
@@ -39,9 +41,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentResponseDto createCheckoutSession(Long bookingId) throws StripeException {
+    public PaymentResponseDto createCheckoutSession(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new EntityNotFoundException(
                         "Reservation not found for ID: " + bookingId));
 
         long numberOfDays =
@@ -70,7 +72,12 @@ public class PaymentServiceImpl implements PaymentService {
                 .putMetadata("userId", booking.getUser().getId().toString())
                 .build();
 
-        Session session = Session.create(params);
+        Session session;
+        try {
+            session = Session.create(params);
+        } catch (StripeException e) {
+            throw new PaymentProcessingException("Failed to create Stripe checkout session", e);
+        }
 
         Payment payment = new Payment();
         payment.setBooking(booking);
@@ -106,7 +113,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional
     public PaymentMessageResponseDto handleSuccessfulPayment(String sessionId) {
         Payment payment = paymentRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new EntityNotFoundException(
                         "Payment not found for session ID: " + sessionId));
 
         payment.setStatus(PaymentStatus.PAID);
