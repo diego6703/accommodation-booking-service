@@ -9,7 +9,9 @@ import static org.mockito.Mockito.when;
 import dev.diego.accommodationbookingservice.dto.booking.BookingRequestDto;
 import dev.diego.accommodationbookingservice.dto.booking.BookingResponseDto;
 import dev.diego.accommodationbookingservice.dto.booking.BookingUpdateDto;
+import dev.diego.accommodationbookingservice.exception.BookingException;
 import dev.diego.accommodationbookingservice.exception.EntityNotFoundException;
+import dev.diego.accommodationbookingservice.exception.OverlappingBookingException;
 import dev.diego.accommodationbookingservice.mapper.BookingMapper;
 import dev.diego.accommodationbookingservice.model.Accommodation;
 import dev.diego.accommodationbookingservice.model.Booking;
@@ -114,7 +116,7 @@ class BookingServiceTest {
         User user = new User();
 
         assertThatThrownBy(() -> bookingService.createBooking(user, requestDto))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(OverlappingBookingException.class)
                 .hasMessage(
                         "No available places for this accommodation in the selected date range.");
     }
@@ -426,7 +428,7 @@ class BookingServiceTest {
         BookingUpdateDto requestDto = new BookingUpdateDto(newCheckIn, newCheckOut);
 
         assertThatThrownBy(() -> bookingService.updateBooking(bookingId, user, requestDto))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(OverlappingBookingException.class)
                 .hasMessage("No available places for "
                         + "this accommodation in the new selected date range.");
     }
@@ -501,7 +503,7 @@ class BookingServiceTest {
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         assertThatThrownBy(() -> bookingService.cancelBooking(bookingId, user))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(BookingException.class)
                 .hasMessage("Booking is already canceled.");
     }
 }

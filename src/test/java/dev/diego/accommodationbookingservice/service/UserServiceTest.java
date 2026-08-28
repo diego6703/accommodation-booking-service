@@ -9,6 +9,7 @@ import dev.diego.accommodationbookingservice.dto.UserResponseDto;
 import dev.diego.accommodationbookingservice.dto.user.UserUpdateProfileRequestDto;
 import dev.diego.accommodationbookingservice.dto.user.UserUpdateRoleRequestDto;
 import dev.diego.accommodationbookingservice.exception.EntityNotFoundException;
+import dev.diego.accommodationbookingservice.exception.PasswordMismatchException;
 import dev.diego.accommodationbookingservice.mapper.UserMapper;
 import dev.diego.accommodationbookingservice.model.Role;
 import dev.diego.accommodationbookingservice.model.User;
@@ -119,7 +120,7 @@ class UserServiceTest {
         when(securityService.getAuthenticatedUser()).thenReturn(user);
 
         assertThatThrownBy(() -> userService.updateMyProfile(requestDto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(PasswordMismatchException.class)
                 .hasMessage("Passwords do not match");
     }
 
