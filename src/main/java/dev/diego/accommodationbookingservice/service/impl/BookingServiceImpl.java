@@ -13,6 +13,7 @@ import dev.diego.accommodationbookingservice.model.User;
 import dev.diego.accommodationbookingservice.repository.AccommodationRepository;
 import dev.diego.accommodationbookingservice.repository.BookingRepository;
 import dev.diego.accommodationbookingservice.service.BookingService;
+import dev.diego.accommodationbookingservice.service.TelegramNotificationService;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final AccommodationRepository accommodationRepository;
     private final BookingMapper bookingMapper;
+    private final TelegramNotificationService notificationService;
 
     @Override
     @Transactional
@@ -58,6 +60,16 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.PENDING);
 
         Booking savedBooking = bookingRepository.save(booking);
+
+        notificationService.sendMessage(String.format(
+                "🟢 New booking created!\nID: %d\nAccommodation: %s\nFrom: %s\nTo: %s\nUser: %s",
+                savedBooking.getId(),
+                accommodation.getLocation(), // lub inna nazwa pola z opisem/tytułem accommodation
+                savedBooking.getCheckInDate(),
+                savedBooking.getCheckOutDate(),
+                currentUser.getEmail()
+        ));
+
         return bookingMapper.toDto(savedBooking);
     }
 
@@ -143,6 +155,14 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.CANCELED);
         bookingRepository.save(booking);
+
+        notificationService.sendMessage(String.format(
+                "🔴 Booking canceled!\nID: %d\nAccommodation: %s\nFrom: %s\nTo: %s",
+                booking.getId(),
+                booking.getAccommodation().getLocation(),
+                booking.getCheckInDate(),
+                booking.getCheckOutDate()
+        ));
     }
 
     private Booking findBookingByIdOrThrow(Long id) {
