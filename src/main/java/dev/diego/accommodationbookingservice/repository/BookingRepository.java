@@ -24,4 +24,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("checkInDate") LocalDate checkInDate,
             @Param("checkOutDate") LocalDate checkOutDate
     );
+
+    List<Booking> findAllByStatusIsNotAndStatusIsNotAndCheckOutDateLessThanEqual(
+            BookingStatus status1,
+            BookingStatus status2,
+            LocalDate date
+    );
 }
