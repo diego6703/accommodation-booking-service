@@ -44,6 +44,9 @@ class PaymentServiceTest {
     @Mock
     private PaymentMapper paymentMapper;
 
+    @Mock
+    private TelegramNotificationService telegramNotificationService;
+
     @InjectMocks
     private PaymentServiceImpl paymentService;
 
@@ -198,9 +201,15 @@ class PaymentServiceTest {
     @Test
     @DisplayName("Should handle successful payment and update status to PAID")
     void handleSuccessfulPayment_ValidSessionId_UpdatesStatusToPaid() {
-        String sessionId = "sess_123";
+        final String sessionId = "sess_123";
+
+        Booking booking = new Booking();
+        booking.setId(10L);
+
         Payment payment = new Payment();
         payment.setStatus(PaymentStatus.PENDING);
+        payment.setBooking(booking);
+        payment.setAmountToPay(BigDecimal.valueOf(150.00));
 
         when(paymentRepository.findBySessionId(sessionId)).thenReturn(Optional.of(payment));
         when(paymentRepository.save(payment)).thenReturn(payment);
@@ -211,6 +220,9 @@ class PaymentServiceTest {
         assertThat(response.message()).contains("Payment was successful");
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAID);
         verify(paymentRepository).save(payment);
+
+        verify(telegramNotificationService).sendMessage(
+                "Payment for reservation #10. Payment was successful! Amount: 150.0 USD");
     }
 
     @Test
