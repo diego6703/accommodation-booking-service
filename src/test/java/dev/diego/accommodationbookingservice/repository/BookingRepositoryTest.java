@@ -36,7 +36,9 @@ class BookingRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        bookingRepository.deleteAll();
+        bookingRepository.deleteAllInBatch();
+        accommodationRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
         testUser = new User();
         testUser.setFirstName("Jack");
         testUser.setLastName("Sparrow");

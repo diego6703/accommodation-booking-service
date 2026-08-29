@@ -9,6 +9,7 @@ import dev.diego.accommodationbookingservice.model.User;
 import dev.diego.accommodationbookingservice.repository.AccommodationRepository;
 import dev.diego.accommodationbookingservice.repository.UserRepository;
 import dev.diego.accommodationbookingservice.security.JwtUtil;
+import dev.diego.accommodationbookingservice.service.TelegramNotificationService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +21,7 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTe
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -40,6 +42,9 @@ class AccommodationControllerIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @MockitoBean
+    private TelegramNotificationService telegramNotificationService;
 
     @BeforeEach
     void setUp() {

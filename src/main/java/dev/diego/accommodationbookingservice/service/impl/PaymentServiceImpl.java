@@ -16,6 +16,7 @@ import dev.diego.accommodationbookingservice.model.User;
 import dev.diego.accommodationbookingservice.repository.BookingRepository;
 import dev.diego.accommodationbookingservice.repository.PaymentRepository;
 import dev.diego.accommodationbookingservice.service.PaymentService;
+import dev.diego.accommodationbookingservice.service.TelegramNotificationService;
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -32,6 +33,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
     private final PaymentMapper paymentMapper;
+    private final TelegramNotificationService notificationService;
 
     @Value("${stripe.success-url}")
     private String successUrl;
@@ -118,6 +120,11 @@ public class PaymentServiceImpl implements PaymentService {
 
         payment.setStatus(PaymentStatus.PAID);
         paymentRepository.save(payment);
+
+        notificationService.sendMessage(String.format(
+                "Payment for reservation #%d. Payment was successful! Amount: %s USD",
+                payment.getBooking().getId(), payment.getAmountToPay()
+        ));
 
         return new PaymentMessageResponseDto("Payment was successful! The booking has been paid.");
     }
