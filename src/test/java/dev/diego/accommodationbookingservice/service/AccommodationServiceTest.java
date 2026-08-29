@@ -39,32 +39,43 @@ class AccommodationServiceTest {
     @Mock
     private AccommodationMapper accommodationMapper;
 
+    @Mock
+    private TelegramNotificationService telegramNotificationService;
+
     @InjectMocks
     private AccommodationServiceImpl accommodationService;
 
     @Test
-    @DisplayName("Should save an accommodation successfully")
+    @DisplayName("Should save an accommodation successfully and send notification")
     void save_ValidRequest_ReturnsAccommodationResponseDto() {
-        AccommodationRequestDto requestDto = new AccommodationRequestDto(
+        final AccommodationRequestDto requestDto = new AccommodationRequestDto(
                 AccommodationType.HOUSE, "Warsaw", "Large",
                 List.of("WiFi"), BigDecimal.valueOf(150.00), 5
         );
         Accommodation accommodation = new Accommodation();
-        Accommodation savedAccommodation = new Accommodation();
+        accommodation.setId(1L);
+        accommodation.setType(AccommodationType.HOUSE);
+        accommodation.setLocation("Warsaw");
+        accommodation.setDailyRate(BigDecimal.valueOf(150.00));
+
         AccommodationResponseDto expectedDto = new AccommodationResponseDto(
                 1L, AccommodationType.HOUSE, "Warsaw", "Large",
                 List.of("WiFi"), BigDecimal.valueOf(150.00), 5
         );
 
         when(accommodationMapper.toEntity(requestDto)).thenReturn(accommodation);
-        when(accommodationRepository.save(accommodation)).thenReturn(savedAccommodation);
-        when(accommodationMapper.toDto(savedAccommodation)).thenReturn(expectedDto);
+        when(accommodationRepository.save(accommodation)).thenReturn(accommodation);
+        when(accommodationMapper.toDto(accommodation)).thenReturn(expectedDto);
 
         AccommodationResponseDto actualDto = accommodationService.save(requestDto);
 
         assertThat(actualDto).isNotNull();
         assertThat(actualDto.location()).isEqualTo("Warsaw");
         verify(accommodationRepository).save(accommodation);
+        verify(telegramNotificationService).sendMessage(
+                "🏠 New accommodation created!\nID: 1\nType: "
+                        + "HOUSE\nLocation: Warsaw\nDaily Rate: $150.0"
+        );
     }
 
     @Test
@@ -163,26 +174,35 @@ class AccommodationServiceTest {
     }
 
     @Test
-    @DisplayName("Should delete accommodation successfully when ID exists")
+    @DisplayName("Should delete accommodation successfully when ID exists and send notification")
     void deleteById_ExistingId_DeletesAccommodation() {
         Long accommodationId = 1L;
-        when(accommodationRepository.existsById(accommodationId)).thenReturn(true);
+        Accommodation accommodation = new Accommodation();
+        accommodation.setId(accommodationId);
+        accommodation.setLocation("Warsaw");
+
+        when(accommodationRepository.findById(accommodationId))
+                .thenReturn(Optional.of(accommodation));
 
         accommodationService.deleteById(accommodationId);
 
         verify(accommodationRepository).deleteById(accommodationId);
+        verify(telegramNotificationService).sendMessage(
+                "🗑️ Accommodation deleted/released!\nID: 1\nLocation: Warsaw"
+        );
     }
 
     @Test
     @DisplayName("Should throw EntityNotFoundException when deleting non-existing accommodation")
     void deleteById_NonExistingId_ThrowsException() {
         Long accommodationId = 99L;
-        when(accommodationRepository.existsById(accommodationId)).thenReturn(false);
+        when(accommodationRepository.findById(accommodationId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> accommodationService.deleteById(accommodationId))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Can't find accommodation by id: " + accommodationId);
 
         verify(accommodationRepository, never()).deleteById(any());
+        verify(telegramNotificationService, never()).sendMessage(any());
     }
 }
