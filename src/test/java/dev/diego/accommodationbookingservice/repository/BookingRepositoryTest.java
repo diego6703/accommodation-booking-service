@@ -36,6 +36,7 @@ class BookingRepositoryTest {
 
     @BeforeEach
     void setUp() {
+        bookingRepository.deleteAll();
         testUser = new User();
         testUser.setFirstName("Jack");
         testUser.setLastName("Sparrow");
@@ -151,5 +152,55 @@ class BookingRepositoryTest {
         );
 
         assertThat(overlappingCount).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName(
+            "Find bookings by status exclusions and checkout date should return matching bookings")
+    void findByStatusExclusionsAndDate_ShouldReturnFilteredBookings() {
+        final LocalDate targetDate = LocalDate.of(2026, 8, 29);
+
+        Booking matchingBooking = new Booking();
+        matchingBooking.setUser(testUser);
+        matchingBooking.setAccommodation(testAccommodation);
+        matchingBooking.setCheckInDate(LocalDate.of(2026, 8, 20));
+        matchingBooking.setCheckOutDate(LocalDate.of(2026, 8, 25));
+        matchingBooking.setStatus(BookingStatus.CONFIRMED);
+        bookingRepository.save(matchingBooking);
+
+        Booking canceledBooking = new Booking();
+        canceledBooking.setUser(testUser);
+        canceledBooking.setAccommodation(testAccommodation);
+        canceledBooking.setCheckInDate(LocalDate.of(2026, 8, 20));
+        canceledBooking.setCheckOutDate(LocalDate.of(2026, 8, 25));
+        canceledBooking.setStatus(BookingStatus.CANCELED);
+        bookingRepository.save(canceledBooking);
+
+        Booking expiredBooking = new Booking();
+        expiredBooking.setUser(testUser);
+        expiredBooking.setAccommodation(testAccommodation);
+        expiredBooking.setCheckInDate(LocalDate.of(2026, 8, 20));
+        expiredBooking.setCheckOutDate(LocalDate.of(2026, 8, 25));
+        expiredBooking.setStatus(BookingStatus.EXPIRED);
+        bookingRepository.save(expiredBooking);
+
+        Booking futureBooking = new Booking();
+        futureBooking.setUser(testUser);
+        futureBooking.setAccommodation(testAccommodation);
+        futureBooking.setCheckInDate(LocalDate.of(2026, 8, 25));
+        futureBooking.setCheckOutDate(LocalDate.of(2026, 9, 2));
+        futureBooking.setStatus(BookingStatus.CONFIRMED);
+        bookingRepository.save(futureBooking);
+
+        List<Booking> actualBookings = bookingRepository
+                .findAllByStatusIsNotAndStatusIsNotAndCheckOutDateLessThanEqual(
+                        BookingStatus.CANCELED,
+                        BookingStatus.EXPIRED,
+                        targetDate
+                );
+
+        assertThat(actualBookings).hasSize(1);
+        assertThat(actualBookings.get(0).getId()).isEqualTo(matchingBooking.getId());
+        assertThat(actualBookings.get(0).getStatus()).isEqualTo(BookingStatus.CONFIRMED);
     }
 }
