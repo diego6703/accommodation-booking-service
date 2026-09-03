@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -62,5 +63,13 @@ public class PaymentController {
     public PaymentMessageResponseDto paymentCancel(@RequestParam(
             value = "session_id", required = false) String sessionId) {
         return paymentService.handleCanceledPayment(sessionId);
+    }
+
+    @Operation(summary = "Renew expired payment session",
+            description = "Creates a new Stripe checkout session for an expired payment.")
+    @PostMapping("/{id}/renew")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    public PaymentResponseDto renewPayment(@PathVariable Long id) {
+        return paymentService.renewPayment(id);
     }
 }
