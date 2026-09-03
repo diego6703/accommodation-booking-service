@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 import dev.diego.accommodationbookingservice.dto.payment.PaymentMessageResponseDto;
 import dev.diego.accommodationbookingservice.dto.payment.PaymentResponseDto;
 import dev.diego.accommodationbookingservice.exception.EntityNotFoundException;
+import dev.diego.accommodationbookingservice.exception.InvalidPaymentStateException;
+import dev.diego.accommodationbookingservice.exception.PaymentNotFoundException;
 import dev.diego.accommodationbookingservice.exception.PaymentProcessingException;
 import dev.diego.accommodationbookingservice.mapper.PaymentMapper;
 import dev.diego.accommodationbookingservice.model.Accommodation;
@@ -274,5 +276,32 @@ class PaymentServiceTest {
 
         assertThat(response).isNotNull();
         assertThat(response.message()).contains("Payment was canceled");
+    }
+
+    @Test
+    @DisplayName("Should throw PaymentNotFoundException when payment not found in renewPayment")
+    void renewPayment_NonExistingPayment_ThrowsException() {
+        Long paymentId = 99L;
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> paymentService.renewPayment(paymentId))
+                .isInstanceOf(PaymentNotFoundException.class)
+                .hasMessage("Payment not found for ID: " + paymentId);
+    }
+
+    @Test
+    @DisplayName(
+            "Should throw InvalidPaymentStateException when trying to renew non-expired payment")
+    void renewPayment_NotExpiredPayment_ThrowsException() {
+        Long paymentId = 1L;
+        Payment payment = new Payment();
+        payment.setId(paymentId);
+        payment.setStatus(PaymentStatus.PAID);
+
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+
+        assertThatThrownBy(() -> paymentService.renewPayment(paymentId))
+                .isInstanceOf(InvalidPaymentStateException.class)
+                .hasMessage("Only expired payments can be renewed.");
     }
 }

@@ -12,6 +12,7 @@ import dev.diego.accommodationbookingservice.model.Role;
 import dev.diego.accommodationbookingservice.model.User;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -79,6 +80,7 @@ class PaymentRepositoryTest {
         payment.setSessionId(uniqueSessionId);
         payment.setSessionUrl("https://checkout.stripe.com/test");
         payment.setAmountToPay(BigDecimal.valueOf(750.00));
+        payment.setExpiresAt(LocalDateTime.now().plusHours(24));
         paymentRepository.save(payment);
 
         Optional<Payment> actualPayment = paymentRepository.findBySessionId(uniqueSessionId);
@@ -106,6 +108,7 @@ class PaymentRepositoryTest {
         payment.setSessionId("cs_test_" + UUID.randomUUID());
         payment.setSessionUrl("https://checkout.stripe.com/test");
         payment.setAmountToPay(BigDecimal.valueOf(750.00));
+        payment.setExpiresAt(LocalDateTime.now().plusHours(24));
         paymentRepository.save(payment);
 
         List<Payment> actualPayments = paymentRepository.findAllByBookingUserId(testUser.getId());
@@ -122,5 +125,42 @@ class PaymentRepositoryTest {
         List<Payment> actualPayments = paymentRepository.findAllByBookingUserId(999L);
 
         assertThat(actualPayments).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Find by status and expiresAt before should return expired pending payments")
+    void findByStatusAndExpiresAtBefore_ShouldReturnExpiredPayments() {
+        Payment expiredPayment = new Payment();
+        expiredPayment.setStatus(PaymentStatus.PENDING);
+        expiredPayment.setBooking(testBooking);
+        expiredPayment.setSessionId("cs_test_expired_" + UUID.randomUUID());
+        expiredPayment.setSessionUrl("https://checkout.stripe.com/test");
+        expiredPayment.setAmountToPay(BigDecimal.valueOf(100.00));
+        expiredPayment.setExpiresAt(LocalDateTime.now().minusMinutes(5));
+        paymentRepository.save(expiredPayment);
+
+        Booking secondBooking = new Booking();
+        secondBooking.setUser(testUser);
+        secondBooking.setAccommodation(testBooking.getAccommodation());
+        secondBooking.setCheckInDate(LocalDate.of(2026, 10, 1));
+        secondBooking.setCheckOutDate(LocalDate.of(2026, 10, 5));
+        secondBooking.setStatus(BookingStatus.PENDING);
+        bookingRepository.save(secondBooking);
+
+        Payment activePayment = new Payment();
+        activePayment.setStatus(PaymentStatus.PENDING);
+        activePayment.setBooking(secondBooking);
+        activePayment.setSessionId("cs_test_active_" + UUID.randomUUID());
+        activePayment.setSessionUrl("https://checkout.stripe.com/test");
+        activePayment.setAmountToPay(BigDecimal.valueOf(200.00));
+        activePayment.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+        paymentRepository.save(activePayment);
+
+        List<Payment> expiredPayments = paymentRepository.findByStatusAndExpiresAtBefore(
+                PaymentStatus.PENDING, LocalDateTime.now()
+        );
+
+        assertThat(expiredPayments).hasSize(1);
+        assertThat(expiredPayments.get(0).getSessionId()).isEqualTo(expiredPayment.getSessionId());
     }
 }

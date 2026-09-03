@@ -154,4 +154,27 @@ class PaymentControllerIntegrationTest {
                                 + "is available for only 24 hours."
                 ));
     }
+
+    @Test
+    @DisplayName("Should successfully renew expired payment via endpoint")
+    void shouldRenewPayment() throws Exception {
+        PaymentResponseDto responseDto = new PaymentResponseDto(
+                1L,
+                PaymentStatus.PENDING,
+                1L,
+                "https://checkout.stripe.com/new-session-url",
+                "session_new_id",
+                BigDecimal.valueOf(150.00)
+        );
+
+        Mockito.when(paymentService.renewPayment(1L)).thenReturn(responseDto);
+
+        mockMvc.perform(post("/payments/1/renew")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionUrl")
+                        .value("https://checkout.stripe.com/new-session-url"))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+    }
 }

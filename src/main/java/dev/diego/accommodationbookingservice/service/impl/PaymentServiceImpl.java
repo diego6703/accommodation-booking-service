@@ -6,6 +6,8 @@ import com.stripe.param.checkout.SessionCreateParams;
 import dev.diego.accommodationbookingservice.dto.payment.PaymentMessageResponseDto;
 import dev.diego.accommodationbookingservice.dto.payment.PaymentResponseDto;
 import dev.diego.accommodationbookingservice.exception.EntityNotFoundException;
+import dev.diego.accommodationbookingservice.exception.InvalidPaymentStateException;
+import dev.diego.accommodationbookingservice.exception.PaymentNotFoundException;
 import dev.diego.accommodationbookingservice.exception.PaymentProcessingException;
 import dev.diego.accommodationbookingservice.mapper.PaymentMapper;
 import dev.diego.accommodationbookingservice.model.Booking;
@@ -18,6 +20,7 @@ import dev.diego.accommodationbookingservice.repository.PaymentRepository;
 import dev.diego.accommodationbookingservice.service.PaymentService;
 import dev.diego.accommodationbookingservice.service.TelegramNotificationService;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -48,38 +51,10 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Reservation not found for ID: " + bookingId));
 
-        long numberOfDays =
-                ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate());
-        if (numberOfDays <= 0) {
-            numberOfDays = 1;
-        }
+        long numberOfDays = calculateNumberOfDays(booking);
+        BigDecimal totalAmount = calculateTotalAmount(booking, numberOfDays);
 
-        BigDecimal dailyRate = booking.getAccommodation().getDailyRate();
-        BigDecimal totalAmount = dailyRate.multiply(BigDecimal.valueOf(numberOfDays));
-
-        String builtSuccessUrl = UriComponentsBuilder.fromUriString(successUrl)
-                .queryParam("session_id", "{CHECKOUT_SESSION_ID}")
-                .toUriString();
-
-        String builtCancelUrl = UriComponentsBuilder.fromUriString(cancelUrl)
-                .queryParam("session_id", "{CHECKOUT_SESSION_ID}")
-                .toUriString();
-
-        SessionCreateParams params = SessionCreateParams.builder()
-                .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(builtSuccessUrl)
-                .setCancelUrl(builtCancelUrl)
-                .addLineItem(createLineItem(booking, numberOfDays, totalAmount))
-                .putMetadata("bookingId", bookingId.toString())
-                .putMetadata("userId", booking.getUser().getId().toString())
-                .build();
-
-        Session session;
-        try {
-            session = Session.create(params);
-        } catch (StripeException e) {
-            throw new PaymentProcessingException("Failed to create Stripe checkout session", e);
-        }
+        Session session = createStripeSession(booking, numberOfDays, totalAmount);
 
         Payment payment = new Payment();
         payment.setBooking(booking);
@@ -87,6 +62,7 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setSessionId(session.getId());
         payment.setSessionUrl(session.getUrl());
         payment.setAmountToPay(totalAmount);
+        payment.setExpiresAt(LocalDateTime.now().plusHours(24));
 
         Payment savedPayment = paymentRepository.save(payment);
 
@@ -144,6 +120,70 @@ public class PaymentServiceImpl implements PaymentService {
                         + "You can complete the payment later, "
                         + "but please note that the Stripe session is available for only 24 hours."
         );
+    }
+
+    @Override
+    @Transactional
+    public PaymentResponseDto renewPayment(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(
+                        "Payment not found for ID: " + paymentId));
+
+        if (payment.getStatus() != PaymentStatus.EXPIRED) {
+            throw new InvalidPaymentStateException("Only expired payments can be renewed.");
+        }
+
+        Booking booking = payment.getBooking();
+        long numberOfDays = calculateNumberOfDays(booking);
+        BigDecimal totalAmount = payment.getAmountToPay();
+
+        Session session = createStripeSession(booking, numberOfDays, totalAmount);
+
+        payment.setSessionId(session.getId());
+        payment.setSessionUrl(session.getUrl());
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.setExpiresAt(LocalDateTime.now().plusHours(24));
+
+        Payment updatedPayment = paymentRepository.save(payment);
+
+        return paymentMapper.toDto(updatedPayment);
+    }
+
+    private long calculateNumberOfDays(Booking booking) {
+        long numberOfDays =
+                ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate());
+        return numberOfDays <= 0 ? 1 : numberOfDays;
+    }
+
+    private BigDecimal calculateTotalAmount(Booking booking, long numberOfDays) {
+        BigDecimal dailyRate = booking.getAccommodation().getDailyRate();
+        return dailyRate.multiply(BigDecimal.valueOf(numberOfDays));
+    }
+
+    private Session createStripeSession(Booking booking,
+                                        long numberOfDays, BigDecimal totalAmount) {
+        String builtSuccessUrl = UriComponentsBuilder.fromUriString(successUrl)
+                .queryParam("session_id", "{CHECKOUT_SESSION_ID}")
+                .toUriString();
+
+        String builtCancelUrl = UriComponentsBuilder.fromUriString(cancelUrl)
+                .queryParam("session_id", "{CHECKOUT_SESSION_ID}")
+                .toUriString();
+
+        SessionCreateParams params = SessionCreateParams.builder()
+                .setMode(SessionCreateParams.Mode.PAYMENT)
+                .setSuccessUrl(builtSuccessUrl)
+                .setCancelUrl(builtCancelUrl)
+                .addLineItem(createLineItem(booking, numberOfDays, totalAmount))
+                .putMetadata("bookingId", booking.getId().toString())
+                .putMetadata("userId", booking.getUser().getId().toString())
+                .build();
+
+        try {
+            return Session.create(params);
+        } catch (StripeException e) {
+            throw new PaymentProcessingException("Failed to create Stripe checkout session", e);
+        }
     }
 
     private SessionCreateParams.LineItem createLineItem(

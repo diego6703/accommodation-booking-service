@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-expires-at-and-expired-status-to-payments
+      author: developer
+      changes:
+        - addColumn:
+            tableName: payments
+            columns:
+              - column:
+                  name: expires_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
