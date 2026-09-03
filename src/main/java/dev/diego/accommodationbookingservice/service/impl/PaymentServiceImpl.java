@@ -150,7 +150,8 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private long calculateNumberOfDays(Booking booking) {
-        long numberOfDays = ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate());
+        long numberOfDays =
+                ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate());
         return numberOfDays <= 0 ? 1 : numberOfDays;
     }
 
@@ -159,7 +160,8 @@ public class PaymentServiceImpl implements PaymentService {
         return dailyRate.multiply(BigDecimal.valueOf(numberOfDays));
     }
 
-    private Session createStripeSession(Booking booking, long numberOfDays, BigDecimal totalAmount) {
+    private Session createStripeSession(Booking booking,
+                                        long numberOfDays, BigDecimal totalAmount) {
         String builtSuccessUrl = UriComponentsBuilder.fromUriString(successUrl)
                 .queryParam("session_id", "{CHECKOUT_SESSION_ID}")
                 .toUriString();

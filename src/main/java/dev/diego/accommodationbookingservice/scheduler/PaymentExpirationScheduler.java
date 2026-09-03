@@ -22,7 +22,8 @@ public class PaymentExpirationScheduler {
     @Transactional
     public void checkExpiredPayments() {
         LocalDateTime now = LocalDateTime.now();
-        List<Payment> expiredPayments = paymentRepository.findByStatusAndExpiresAtBefore(PaymentStatus.PENDING, now);
+        List<Payment> expiredPayments = paymentRepository
+                .findByStatusAndExpiresAtBefore(PaymentStatus.PENDING, now);
 
         if (expiredPayments.isEmpty()) {
             return;
